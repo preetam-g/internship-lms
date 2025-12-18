@@ -1,7 +1,6 @@
 
 from django.urls import path, include
 
-from apps.users.views import UserListView
 
 urlpatterns = [
  path('api/', include('apps.users.urls')),
