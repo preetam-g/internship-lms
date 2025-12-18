@@ -7,7 +7,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.contrib.auth import get_user_model, authenticate
 from django.db import IntegrityError
-from django.core.exceptions import ValidationError
 from django.http import Http404
 
 from .permissions import IsAdminRole
