@@ -1,14 +1,18 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet
+from .views import CourseViewSet, ChapterViewSet
 
 router = DefaultRouter()
 router.register(r'courses', CourseViewSet, basename='course')
 
 urlpatterns = [
-    # This generates:
-    # /api/courses/ (GET list, POST create)
-    # /api/courses/my/ (GET custom list for specific user)
-    # /api/courses/:id/ (PUT update, DELETE destroy)
+    # Standard Course URLs
     path('', include(router.urls)),
+
+    # Nested Chapter URLs
+    # This maps /api/courses/<id>/chapters/ to the ChapterViewSet
+    path('courses/<int:course_id>/chapters/', ChapterViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='course-chapters'),
 ]

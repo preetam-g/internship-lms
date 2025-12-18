@@ -29,12 +29,13 @@ class Chapter(models.Model):
     title = models.CharField(max_length=255, null=False)
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(upload_to="chapters/images/", null=True, blank=True)
+    image_url = models.URLField(max_length=1000, null=True, blank=True)
     video_url = models.URLField(null=True, blank=True)
     sequence_number = models.PositiveIntegerField()
 
     class Meta:
         unique_together = ("course", "sequence_number")
-        ordering = ["sequence_number"]
+        ordering = ["course", "sequence_number"]
 
     def __str__(self):
         return f"{self.course.title}: {self.sequence_number} - {self.title}"

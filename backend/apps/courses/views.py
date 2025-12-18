@@ -1,13 +1,20 @@
 from django.http import Http404
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Course
-from .serializers import CourseSerializer
 from .permissions import IsMentor, IsCourseMentor
+from .models import (
+    Course,
+    Chapter
+)
+from .serializers import (
+    CourseSerializer,
+    ChapterSerializer
+)
 
 
 class CourseViewSet(mixins.CreateModelMixin,
@@ -103,3 +110,74 @@ class CourseViewSet(mixins.CreateModelMixin,
 
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ChapterViewSet(mixins.CreateModelMixin,
+                     mixins.ListModelMixin,
+                     viewsets.GenericViewSet):
+    """
+    Handles Chapter Management for a specific course.
+    URL: /api/courses/:course_id/chapters/
+    """
+    serializer_class = ChapterSerializer
+    permission_classes = [IsAuthenticated, IsMentor]
+
+    def get_course(self):
+        """
+        Helper to fetch the course and enforce ownership.
+        """
+        course_id = self.kwargs.get('course_id')
+        course = get_object_or_404(Course, pk=course_id)
+
+        if course.mentor != self.request.user:
+            raise PermissionDenied("You are not the mentor of this course.")
+
+        return course
+
+    def list(self, request, *args, **kwargs):
+        """
+        GET /api/courses/:course_id/chapters
+        """
+        try:
+            course = self.get_course()  # Validates ownership
+
+            # Filter chapters by this course
+            chapters = Chapter.objects.filter(course=course)
+            serializer = self.get_serializer(chapters, many=True)
+
+            return Response({
+                'data': serializer.data,
+                'detail': f"""{course.title}: Chapters fetched successfully"""
+            }, status=status.HTTP_200_OK)
+
+        except PermissionDenied as e:
+            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Http404 as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def create(self, request, *args, **kwargs):
+        """
+        POST /api/courses/:course_id/chapters
+        """
+        try:
+            course = self.get_course()  # Validates ownership
+
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            # Save the chapter linked to the fetched course
+            serializer.save(course=course)
+
+            return Response({
+                'data': serializer.data,
+                'detail': 'Chapter added successfully'
+            }, status=status.HTTP_201_CREATED)
+
+        except PermissionDenied as e:
+            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Http404 as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
