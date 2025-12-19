@@ -1,7 +1,3 @@
-This README is designed to be professional, clear, and specifically tailored to meet the requirements shown in your image, particularly the focus on **RBAC (Role-Based Access Control)** and **Supabase/PostgreSQL**.
-
----
-
 # Internship Learning Management System (LMS)
 
 A robust, full-stack Learning Management System designed for internship management. This application features a secure, multi-role architecture (RBAC) to handle different user permissions and real-world business logic.
