@@ -53,19 +53,15 @@ MIDDLEWARE = [
 # --------------------
 # CORS Configuration (Added)
 # --------------------
-# If True, allows requests from ANY domain (Good for dev, bad for prod)
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOW_ALL_ORIGINS = False
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://127.0.0.1:3000",
-# ]
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "https://your-frontend.vercel.app",
+CORS_ALLOWED_ORIGINS = [
+    "https://internship-lms.vercel.app",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://internship-lms.vercel.app",
+]
 
 # --------------------
 # URL / WSGI
