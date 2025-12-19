@@ -54,12 +54,12 @@ export default function Login() {
             <Typography variant="h4" gutterBottom>Internship Page</Typography>
         {!user ? (
           <Fragment>
-            <Button onClick={handleLogin} variant="contained" size="small">Login</Button>
-            <Button onClick={handleRegister} variant="contained" size="small">Register</Button>
+            <Button onClick={handleLogin} size="small">Login</Button>
+            <Button onClick={handleRegister} size="small">Register</Button>
           </Fragment>
         ) : (
           <Fragment>
-            <Button onClick={handleDashboard} variant="contained" size="small">Go to Dashboard</Button>
+            <Button onClick={handleDashboard} size="small">Go to Dashboard</Button>
           </Fragment>
         )}
         </Stack>
