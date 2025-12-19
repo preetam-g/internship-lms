@@ -34,33 +34,30 @@ import {
   assignCourse,
 } from "../../api/apiFunctions";
 
-/* ===========================
-   Mentor Dashboard
-=========================== */
-
 export default function MentorDashboard() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  /* ---------------------------
-     Dialog states
-  ---------------------------- */
+  /* Loading states */
+  const [creatingCourse, setCreatingCourse] = useState(false);
+  const [updatingCourse, setUpdatingCourse] = useState(false);
+  const [addingChapter, setAddingChapter] = useState(false);
+  const [assigningCourse, setAssigningCourse] = useState(false);
+  const [fetchingStudents, setFetchingStudents] = useState(false);
+
+  /* Dialog states */
   const [openCreateCourse, setOpenCreateCourse] = useState(false);
   const [openEditCourse, setOpenEditCourse] = useState(false);
   const [openAddChapter, setOpenAddChapter] = useState(false);
   const [openViewChapter, setOpenViewChapter] = useState(false);
   const [openAssign, setOpenAssign] = useState(false);
 
-  /* ---------------------------
-     Course state
-  ---------------------------- */
+  /* Course state */
   const [editingCourse, setEditingCourse] = useState(null);
   const [courseTitle, setCourseTitle] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
 
-  /* ---------------------------
-     Chapter state
-  ---------------------------- */
+  /* Chapter state */
   const [activeCourse, setActiveCourse] = useState(null);
   const [chapterData, setChapterData] = useState({
     title: "",
@@ -70,15 +67,10 @@ export default function MentorDashboard() {
   });
   const [viewChapter, setViewChapter] = useState(null);
 
-  /* ---------------------------
-     Assign state
-  ---------------------------- */
+  /* Assign state */
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState("");
 
-  /* ---------------------------
-     Utils
-  ---------------------------- */
   const isValidUrl = (url) => {
     try {
       new URL(url);
@@ -88,9 +80,6 @@ export default function MentorDashboard() {
     }
   };
 
-  /* ---------------------------
-     Fetch Courses
-  ---------------------------- */
   useEffect(() => {
     fetchMyCourses();
   }, []);
@@ -103,21 +92,19 @@ export default function MentorDashboard() {
       .finally(() => setLoading(false));
   };
 
-  /* ---------------------------
-     Fetch Students
-  ---------------------------- */
   const fetchStudents = () => {
+    setFetchingStudents(true);
     getAllStudents()
       .then((res) => setStudents(res.data.data || []))
-      .catch(() => alert("Failed to fetch students"));
+      .catch(() => alert("Failed to fetch students"))
+      .finally(() => setFetchingStudents(false));
   };
 
-  /* ---------------------------
-     Course CRUD
-  ---------------------------- */
+  /* Course CRUD */
   const handleCreateCourse = () => {
     if (!courseTitle) return alert("Title is required");
 
+    setCreatingCourse(true);
     createCourse({ title: courseTitle, description: courseDescription })
       .then(() => {
         setOpenCreateCourse(false);
@@ -125,10 +112,12 @@ export default function MentorDashboard() {
         setCourseDescription("");
         fetchMyCourses();
       })
-      .catch(() => alert("Failed to create course"));
+      .catch(() => alert("Failed to create course"))
+      .finally(() => setCreatingCourse(false));
   };
 
   const handleUpdateCourse = () => {
+    setUpdatingCourse(true);
     updateCourse(editingCourse.id, {
       title: courseTitle,
       description: courseDescription,
@@ -138,7 +127,8 @@ export default function MentorDashboard() {
         setEditingCourse(null);
         fetchMyCourses();
       })
-      .catch(() => alert("Failed to update course"));
+      .catch(() => alert("Failed to update course"))
+      .finally(() => setUpdatingCourse(false));
   };
 
   const handleDeleteCourse = (courseId) => {
@@ -149,9 +139,7 @@ export default function MentorDashboard() {
       .catch(() => alert("Failed to delete course"));
   };
 
-  /* ---------------------------
-     Chapters
-  ---------------------------- */
+  /* Chapters */
   const openAddChapterDialog = (course) => {
     setActiveCourse(course);
     setChapterData({
@@ -172,11 +160,10 @@ export default function MentorDashboard() {
 
     const nextSeq =
       activeCourse.chapters?.length > 0
-        ? Math.max(
-            ...activeCourse.chapters.map((c) => c.sequence_number)
-          ) + 1
+        ? Math.max(...activeCourse.chapters.map((c) => c.sequence_number)) + 1
         : 1;
 
+    setAddingChapter(true);
     addChapter(activeCourse.id, {
       ...chapterData,
       sequence_number: nextSeq,
@@ -186,15 +173,15 @@ export default function MentorDashboard() {
         setActiveCourse(null);
         fetchMyCourses();
       })
-      .catch(() => alert("Failed to add chapter"));
+      .catch(() => alert("Failed to add chapter"))
+      .finally(() => setAddingChapter(false));
   };
 
-  /* ---------------------------
-     Assign Course
-  ---------------------------- */
+  /* Assign Course */
   const handleAssignCourse = () => {
     if (!selectedStudent) return alert("Select a student");
 
+    setAssigningCourse(true);
     assignCourse(activeCourse.id, {
       student_id: selectedStudent,
     })
@@ -203,15 +190,12 @@ export default function MentorDashboard() {
         setOpenAssign(false);
         setActiveCourse(null);
       })
-      .catch(() => alert("Failed to assign course"));
+      .catch(() => alert("Failed to assign course"))
+      .finally(() => setAssigningCourse(false));
   };
 
-  /* ===========================
-     UI
-  ============================ */
   return (
     <Container maxWidth="lg" sx={{ mt: 2 }}>
-      {/* Header */}
       <Stack direction="row" justifyContent="space-between" mb={3}>
         <Typography variant="h4">Mentor Dashboard</Typography>
         <Button
@@ -223,7 +207,6 @@ export default function MentorDashboard() {
         </Button>
       </Stack>
 
-      {/* Courses */}
       {loading ? (
         <Typography>Loading...</Typography>
       ) : courses.length === 0 ? (
@@ -239,7 +222,6 @@ export default function MentorDashboard() {
               <Grid item xs={12} key={course.id}>
                 <Card>
                   <CardContent>
-                    {/* Course Header */}
                     <Stack direction="row" justifyContent="space-between">
                       <Typography variant="h6">{course.title}</Typography>
                       <Stack direction="row">
@@ -280,7 +262,6 @@ export default function MentorDashboard() {
 
                     <Divider sx={{ mb: 2 }} />
 
-                    {/* Chapters */}
                     <Typography variant="subtitle2">Chapters</Typography>
 
                     {chapters.length > 0 ? (
@@ -327,141 +308,57 @@ export default function MentorDashboard() {
         </Grid>
       )}
 
-      {/* =========================
-          Create Course Dialog
-      ========================== */}
+      {/* Dialogs */}
       <Dialog open={openCreateCourse} onClose={() => setOpenCreateCourse(false)} fullWidth maxWidth="sm">
         <DialogTitle>Create Course</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Title"
-              value={courseTitle}
-              onChange={(e) => setCourseTitle(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Description"
-              value={courseDescription}
-              onChange={(e) => setCourseDescription(e.target.value)}
-              multiline
-              rows={3}
-              fullWidth
-            />
+            <TextField label="Title" value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)} />
+            <TextField label="Description" value={courseDescription} onChange={(e) => setCourseDescription(e.target.value)} multiline rows={3} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCreateCourse(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateCourse}>
-            Create
+          <Button variant="contained" disabled={creatingCourse} onClick={handleCreateCourse}>
+            {creatingCourse ? "Creating..." : "Create"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* =========================
-          Edit Course Dialog
-      ========================== */}
       <Dialog open={openEditCourse} onClose={() => setOpenEditCourse(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit Course</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Title"
-              value={courseTitle}
-              onChange={(e) => setCourseTitle(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Description"
-              value={courseDescription}
-              onChange={(e) => setCourseDescription(e.target.value)}
-              multiline
-              rows={3}
-              fullWidth
-            />
+            <TextField label="Title" value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)} />
+            <TextField label="Description" value={courseDescription} onChange={(e) => setCourseDescription(e.target.value)} multiline rows={3} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenEditCourse(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdateCourse}>
-            Update
+          <Button variant="contained" disabled={updatingCourse} onClick={handleUpdateCourse}>
+            {updatingCourse ? "Updating..." : "Update"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* =========================
-          View Chapter Dialog
-      ========================== */}
-      <Dialog open={openViewChapter} onClose={() => setOpenViewChapter(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Chapter Details</DialogTitle>
-        <DialogContent>
-          {viewChapter && (
-            <Stack spacing={2} mt={1}>
-              <TextField label="Title" value={viewChapter.title} fullWidth InputProps={{ readOnly: true }} />
-              <TextField
-                label="Description"
-                value={viewChapter.description || ""}
-                multiline
-                rows={3}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-              <TextField label="Video URL" value={viewChapter.video_url || ""} fullWidth InputProps={{ readOnly: true }} />
-              <TextField label="Image URL" value={viewChapter.image_url || ""} fullWidth InputProps={{ readOnly: true }} />
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenViewChapter(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* =========================
-          Add Chapter Dialog
-      ========================== */}
       <Dialog open={openAddChapter} onClose={() => setOpenAddChapter(false)} fullWidth maxWidth="sm">
         <DialogTitle>Add Chapter</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Title"
-              value={chapterData.title}
-              onChange={(e) => setChapterData({ ...chapterData, title: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="Description"
-              value={chapterData.description}
-              onChange={(e) => setChapterData({ ...chapterData, description: e.target.value })}
-              multiline
-              rows={3}
-              fullWidth
-            />
-            <TextField
-              label="Video URL"
-              value={chapterData.video_url}
-              onChange={(e) => setChapterData({ ...chapterData, video_url: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="Image URL"
-              value={chapterData.image_url}
-              onChange={(e) => setChapterData({ ...chapterData, image_url: e.target.value })}
-              fullWidth
-            />
+            <TextField label="Title" value={chapterData.title} onChange={(e) => setChapterData({ ...chapterData, title: e.target.value })} />
+            <TextField label="Description" value={chapterData.description} onChange={(e) => setChapterData({ ...chapterData, description: e.target.value })} multiline rows={3} />
+            <TextField label="Video URL" value={chapterData.video_url} onChange={(e) => setChapterData({ ...chapterData, video_url: e.target.value })} />
+            <TextField label="Image URL" value={chapterData.image_url} onChange={(e) => setChapterData({ ...chapterData, image_url: e.target.value })} />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenAddChapter(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddChapter}>
-            Add
+          <Button variant="contained" disabled={addingChapter} onClick={handleAddChapter}>
+            {addingChapter ? "Adding..." : "Add"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* =========================
-          Assign Course Dialog
-      ========================== */}
       <Dialog open={openAssign} onClose={() => setOpenAssign(false)} fullWidth maxWidth="sm">
         <DialogTitle>Assign Course</DialogTitle>
         <DialogContent>
@@ -472,6 +369,7 @@ export default function MentorDashboard() {
             onChange={(e) => setSelectedStudent(e.target.value)}
             fullWidth
             sx={{ mt: 2 }}
+            disabled={fetchingStudents}
           >
             {students.map((s) => (
               <MenuItem key={s.id} value={s.id}>
@@ -482,8 +380,8 @@ export default function MentorDashboard() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenAssign(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAssignCourse}>
-            Assign
+          <Button variant="contained" disabled={assigningCourse} onClick={handleAssignCourse}>
+            {assigningCourse ? "Assigning..." : "Assign"}
           </Button>
         </DialogActions>
       </Dialog>
