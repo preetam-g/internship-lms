@@ -52,6 +52,12 @@ The system implements a strict **Role-Based Access Control** system to ensure da
 3. Configure `.env` with backend API URL.
 4. Start development server: `npm start`
 
+### Note: 
+
+There is a default Admin created in DB.
+UserName: AdminUser
+Password: password
+
 ---
 
 ## 🤖 AI Disclosure
