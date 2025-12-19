@@ -63,36 +63,40 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+
+        if not username or not password:
+            return Response(
+                {"detail": "Username and password are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
-            username = request.data.get('username')
-            password = request.data.get('password')
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Invalid username or password"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
-            if not username or not password:
-                return Response({
-                    'detail': 'Username and password are required'
-                }, status=status.HTTP_400_BAD_REQUEST)
+        if not user.check_password(password):
+            return Response(
+                {"detail": "Invalid username or password"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
-            user = authenticate(username=username, password=password)
+        token = RefreshToken.for_user(user)
 
-            if not user:
-                return Response({
-                    'detail': 'Invalid username or password',
-                }, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({
+            "data": {
+                "access": str(token.access_token),
+                "refresh": str(token),
+                "user": UserSerializer(user).data,
+            },
+            "detail": "User logged in successfully",
+        }, status=status.HTTP_200_OK)
 
-            token = RefreshToken.for_user(user)
-            return Response({
-                'data': {
-                    'access': str(token.access_token),
-                    'refresh': str(token),
-                    'user': UserSerializer(user).data,
-                },
-                'detail': 'User logged in successfully',
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({
-                'detail': f'Login failed: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
