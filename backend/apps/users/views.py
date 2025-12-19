@@ -28,11 +28,17 @@ class RegisterView(APIView):
                     'detail': 'Username and password are required'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            User.objects.create_user(username=username, password=password)
+            user = User.objects.create_user(username=username, password=password)
 
+            token = RefreshToken.for_user(user)
             return Response({
-                'detail': 'User registered successfully'
-            }, status=status.HTTP_201_CREATED)
+                'data': {
+                    'access': str(token.access_token),
+                    'refresh': str(token),
+                    'user': UserSerializer(user).data,
+                },
+                'detail': 'User registered successfully',
+            }, status=status.HTTP_200_OK)
 
         except IntegrityError:
             return Response({
@@ -66,8 +72,9 @@ class LoginView(APIView):
             token = RefreshToken.for_user(user)
             return Response({
                 'data': {
-                    'access_token': str(token.access_token),
-                    'refresh_token': str(token)
+                    'access': str(token.access_token),
+                    'refresh': str(token),
+                    'user': UserSerializer(user).data,
                 },
                 'detail': 'User logged in successfully',
             }, status=status.HTTP_200_OK)
@@ -78,7 +85,6 @@ class LoginView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# --- User Management ViewSet ---
 
 class UserViewSet(mixins.ListModelMixin,  # Enables GET /api/users/
                   mixins.DestroyModelMixin,  # Enables DELETE /api/users/:id/

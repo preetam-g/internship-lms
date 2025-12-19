@@ -1,10 +1,23 @@
-
 import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
+
+function getStoredUser() {
+  try {
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
+  } catch (err) {
+    console.error("Invalid user in localStorage", err);
+    localStorage.removeItem("user");
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const [user, setUser] = useState(() => getStoredUser());
 
   const login = (data) => {
     localStorage.setItem("access", data.access);
@@ -14,7 +27,9 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.clear();
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
     setUser(null);
   };
 

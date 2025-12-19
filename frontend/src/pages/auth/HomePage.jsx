@@ -6,10 +6,13 @@ import {
   Box,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext";
+import { Fragment } from "react";
 
 export default function Login() {
 
   const navigate = useNavigate();
+  const {user} = useAuth();
 
   const handleLogin = (e) => {
     
@@ -22,6 +25,14 @@ export default function Login() {
     
     e.preventDefault();
     navigate("/register");
+
+  };
+
+  const handleDashboard = (e) => {
+    
+    e.preventDefault();
+    if (!user) return;
+    navigate(`/${user?.role_name.toLowerCase()}`);
 
   };
 
@@ -40,9 +51,17 @@ export default function Login() {
         }}
       >
         <Stack>
-          <Typography variant="h4" gutterBottom>Internship Page</Typography>
-          <Button onClick={handleLogin}>Login</Button>
-          <Button onClick={handleRegister}>Register</Button>
+            <Typography variant="h4" gutterBottom>Internship Page</Typography>
+        {!user ? (
+          <Fragment>
+            <Button onClick={handleLogin} variant="contained" size="small">Login</Button>
+            <Button onClick={handleRegister} variant="contained" size="small">Register</Button>
+          </Fragment>
+        ) : (
+          <Fragment>
+            <Button onClick={handleDashboard} variant="contained" size="small">Go to Dashboard</Button>
+          </Fragment>
+        )}
         </Stack>
       </Container>
     </Box>
