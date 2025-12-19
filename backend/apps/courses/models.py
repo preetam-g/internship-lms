@@ -30,8 +30,8 @@ class Chapter(models.Model):
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(upload_to="chapters/images/", null=True, blank=True)
     image_url = models.URLField(max_length=1000, null=True, blank=True)
-    video_url = models.URLField(null=True, blank=True)
-    sequence_number = models.PositiveIntegerField()
+    video_url = models.URLField(null=False)
+    sequence_number = models.PositiveIntegerField(null=False)
 
     class Meta:
         unique_together = ("course", "sequence_number")

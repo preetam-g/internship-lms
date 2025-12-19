@@ -298,7 +298,7 @@ class ProgressViewSet(viewsets.GenericViewSet):
 
             if not is_prev_complete:
                 return Response({
-                    'detail': f'You must complete chapter "{previous_chapter.title}" first.'
+                    'detail': 'You must complete all previous chapters.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         # 3. Mark as Complete

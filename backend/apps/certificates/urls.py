@@ -1,4 +1,11 @@
+from rest_framework.routers import DefaultRouter
+from .views import CertificateViewSet
+from django.urls import path, include
 
-from django.urls import path
-from .views import CertificateView
-urlpatterns = [ path('<int:course_id>', CertificateView.as_view()) ]
+router = DefaultRouter()
+router.register(r'certificates', CertificateViewSet, basename='certificate')
+
+urlpatterns = [
+    path('', include(router.urls)),
+
+]
