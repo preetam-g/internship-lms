@@ -1,11 +1,15 @@
 from datetime import timedelta
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'dev-secret-key'
-DEBUG = True
-ALLOWED_HOSTS = []
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+DEBUG = os.getenv("DEBUG", "True") == "True"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 # --------------------
 # Applications
@@ -50,13 +54,18 @@ MIDDLEWARE = [
 # CORS Configuration (Added)
 # --------------------
 # If True, allows requests from ANY domain (Good for dev, bad for prod)
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
-# Or be specific (Better practice):
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:3000",
 #     "http://127.0.0.1:3000",
 # ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "https://your-frontend.vercel.app",
+]
+
 
 # --------------------
 # URL / WSGI
@@ -86,12 +95,23 @@ TEMPLATES = [
 # --------------------
 # Database
 # --------------------
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "postgres",
+        "USER": "postgres",
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": "5432",
     }
 }
+
 
 # --------------------
 # Auth
@@ -127,9 +147,11 @@ SIMPLE_JWT = {
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # Good practice for collectstatic
 
-# <--- ADDED: Media Config
 # This is where your Certificates and Course Images will be saved
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
