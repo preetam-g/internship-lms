@@ -21,167 +21,185 @@ from .serializers import (
     ChapterSerializer,
     CourseProgressSerializer
 )
+from ..users.permissions import IsAdminRole
 
 User = get_user_model()
 
-class CourseViewSet(mixins.CreateModelMixin,
-                    mixins.UpdateModelMixin,
-                    mixins.DestroyModelMixin,
-                    viewsets.GenericViewSet):
+class CourseViewSet(mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet):
     """
-    Permissions enforced:
-    1. User must be Logged In (IsAuthenticated)
-    2. User must be a Mentor (IsMentor)
-    3. User must be the owner of the course to Edit/Delete (IsCourseMentor)
+    Course Management API
+
+    Roles:
+    - Admin:
+        * List all courses
+    - Mentor:
+        * Create courses
+        * Update/Delete own courses
+        * View own courses
+        * Assign students to own courses
     """
+
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
-    # IsCourseMentor automatically protects update/destroy actions
-    permission_classes = [IsAuthenticated, IsMentor, IsCourseMentor]
+    # -------------------------------------------------
+    # Dynamic permissions (CRITICAL)
+    # -------------------------------------------------
+    def get_permissions(self):
+        if self.action == "list":
+            # Admin only: view all courses
+            return [IsAuthenticated(), IsAdminRole()]
 
-    # --- POST /api/courses ---
+        if self.action in ["create", "my_courses"]:
+            # Mentor actions
+            return [IsAuthenticated(), IsMentor()]
+
+        if self.action in ["update", "partial_update", "destroy", "assign_course"]:
+            # Mentor + ownership
+            return [
+                IsAuthenticated(),
+                IsMentor(),
+                IsCourseMentor(),
+            ]
+
+        return [IsAuthenticated()]
+
+    # -------------------------------------------------
+    # GET /api/courses/  (Admin only)
+    # -------------------------------------------------
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "All courses fetched successfully"
+            },
+            status=status.HTTP_200_OK
+        )
+
+    # -------------------------------------------------
+    # POST /api/courses/  (Mentor)
+    # -------------------------------------------------
     def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            # Assign logged-in user as mentor
-            serializer.save(mentor=request.user)
+        # Logged-in mentor becomes course owner
+        serializer.save(mentor=request.user)
 
-            return Response({
-                'data': serializer.data,
-                'detail': 'Course created successfully'
-            }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "Course created successfully"
+            },
+            status=status.HTTP_201_CREATED
+        )
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    # --- PUT /api/courses/:id ---
+    # -------------------------------------------------
+    # PUT /api/courses/:id/  (Mentor + owner)
+    # -------------------------------------------------
     def update(self, request, *args, **kwargs):
-        try:
-            # get_object() checks IsCourseMentor permission automatically.
-            # If user is not the owner, it raises 403 Forbidden immediately.
-            instance = self.get_object()
+        instance = self.get_object()
 
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-            return Response({
-                'data': serializer.data,
-                'detail': 'Course updated successfully'
-            }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "Course updated successfully"
+            },
+            status=status.HTTP_200_OK
+        )
 
-        except Http404:
-            return Response({'detail': 'Course not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except PermissionDenied:
-            return Response({'detail': 'Unauthorized to update this course'}, status=status.HTTP_403_FORBIDDEN)
-
-        except Exception as e:
-            # Handle 403 explicitly if you want a custom message,
-            # otherwise DRF returns a default "You do not have permission"
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    # --- DELETE /api/courses/:id ---
+    # -------------------------------------------------
+    # DELETE /api/courses/:id/  (Mentor + owner)
+    # -------------------------------------------------
     def destroy(self, request, *args, **kwargs):
-        try:
-            # get_object() checks permission automatically
-            instance = self.get_object()
-            self.perform_destroy(instance)
-            return Response({'detail': 'Course deleted successfully'}, status=status.HTTP_200_OK)
+        instance = self.get_object()
+        self.perform_destroy(instance)
 
-        except Http404:
-            return Response({'detail': 'Course not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except PermissionDenied:
-            return Response({'detail': 'Unauthorized to delete this course'},
-                            status=status.HTTP_403_FORBIDDEN)
-        except Exception as e:
-            return Response({'detail': f'Failed to delete: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Course deleted successfully"},
+            status=status.HTTP_200_OK
+        )
 
-    # --- GET /api/courses/my ---
-    @action(detail=False, methods=['get'], url_path='my')
+    # -------------------------------------------------
+    # GET /api/courses/my/  (Mentor)
+    # -------------------------------------------------
+    @action(detail=False, methods=["get"], url_path="my")
     def my_courses(self, request):
-        """
-        Return only the courses created by the currently logged-in user.
-        """
-        try:
-            # We filter the queryset manually here to ensure they only see their own
-            user_courses = Course.objects.filter(mentor=request.user)
-            serializer = self.get_serializer(user_courses, many=True)
+        user_courses = Course.objects.filter(
+            mentor=request.user
+        )
+        serializer = self.get_serializer(
+            user_courses,
+            many=True
+        )
 
-            return Response({
-                'data': serializer.data,
-                'detail': 'Your courses fetched successfully'
-            }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "Your courses fetched successfully"
+            },
+            status=status.HTTP_200_OK
+        )
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # --- POST /api/courses/:id/assign ---
-    @action(detail=True, methods=['post'], url_path='assign')
+    # -------------------------------------------------
+    # POST /api/courses/:id/assign/  (Mentor + owner)
+    # -------------------------------------------------
+    @action(detail=True, methods=["post"], url_path="assign")
     def assign_course(self, request, pk=None):
-        """
-        Assign a course to a single student (Mentor Only)
-        """
-        try:
-            # Ensures mentor ownership via IsCourseMentor
-            course = self.get_object()
+        course = self.get_object()
 
-            student_id = request.data.get("student_id")
-
-            if not student_id:
-                return Response(
-                    {"detail": "student_id is required"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            student = get_object_or_404(User, pk=student_id)
-            if student.role != User.Role.STUDENT:
-                return Response(
-                    {"detail": "The selected user is not a Student."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            assignment, created = CourseAssignment.objects.get_or_create(
-                course=course,
-                student=student
-            )
-
-            if not created:
-                return Response(
-                    {"detail": "Student already assigned to this course"},
-                    status=status.HTTP_200_OK
-                )
-
+        student_id = request.data.get("student_id")
+        if not student_id:
             return Response(
-                {
-                    "detail": "Course assigned successfully",
-                    "data": {
-                        "course_id": course.id,
-                        "student_id": student.id
-                    }
-                },
-                status=status.HTTP_201_CREATED
-            )
-
-        except PermissionDenied:
-            return Response(
-                {"detail": "You are not authorized to assign this course"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        except Http404:
-            return Response(
-                {"detail": "Course or Student not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        except Exception as e:
-            return Response(
-                {"detail": str(e)},
+                {"detail": "student_id is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        student = get_object_or_404(User, pk=student_id)
+
+        if student.role != User.Role.STUDENT:
+            return Response(
+                {"detail": "The selected user is not a Student."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        assignment, created = CourseAssignment.objects.get_or_create(
+            course=course,
+            student=student
+        )
+
+        if not created:
+            return Response(
+                {"detail": "Student already assigned to this course"},
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            {
+                "detail": "Course assigned successfully",
+                "data": {
+                    "course_id": course.id,
+                    "student_id": student.id
+                }
+            },
+            status=status.HTTP_201_CREATED
+        )
+
 
 
 class ChapterViewSet(mixins.CreateModelMixin,

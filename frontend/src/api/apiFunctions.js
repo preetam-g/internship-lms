@@ -5,12 +5,50 @@ const api = axios.create({
   baseURL: "http://localhost:8000/api/",
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+/* ---------------------------
+   Request Interceptor
+---------------------------- */
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
+/* ---------------------------
+   Response Interceptor
+   -> Logout on 401
+---------------------------- */
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401) {
+      // 🔥 Clear ALL auth data
+      localStorage.clear();
+
+      // Prevent redirect loop on login/register
+      const currentPath = window.location.pathname;
+      if (
+        currentPath !== "/login" &&
+        currentPath !== "/register"
+      ) {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+/* ===========================
+   API FUNCTIONS
+=========================== */
 
 // authentication
 export const registerUser = (data) => {
@@ -23,7 +61,7 @@ export const loginUser = (data) => {
 
 // user-management
 export const getUsers = (params) => {
-  return api.get("users/", {params});
+  return api.get("users/", { params });
 };
 
 export const approveMentor = (id, data) => {
@@ -32,4 +70,10 @@ export const approveMentor = (id, data) => {
 
 export const deleteUser = (id) => {
   return api.delete(`users/${id}/`);
+};
+
+// courses
+export const getCourses = (params) => {
+  // for admin to get all courses
+  return api.get("courses/", {params});
 };

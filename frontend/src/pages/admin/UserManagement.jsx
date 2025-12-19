@@ -9,9 +9,19 @@ import {
   Stack,
   TextField,
   MenuItem,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useState } from "react";
-import { approveMentor } from "../../api/apiFunctions";
+import {
+  approveMentor,
+  deleteUser,
+} from "../../api/apiFunctions";
 
 export default function UserManagement({
   users,
@@ -22,7 +32,7 @@ export default function UserManagement({
   const [actionLoading, setActionLoading] = useState(null);
 
   /* ---------------------------
-     Role Counts (global)
+     Role Counts
   ---------------------------- */
   const counts = users.reduce(
     (acc, user) => {
@@ -152,82 +162,191 @@ function UserCard({
     Student: "secondary",
   };
 
-  const makeMentor = async () => {
-    try {
-      setActionLoading(user.id);
-      await approveMentor(user.id);
-      refreshUsers();
-    } catch (err) {
-      const msg =
-        err?.response?.data?.detail ||
-        "Failed to approve mentor";
-      alert(msg);
-    } finally {
-      setActionLoading(null);
-    }
+  const [openDeleteDialog, setOpenDeleteDialog] =
+    useState(false);
+
+  /* ---------------------------
+     Make Mentor (then/catch)
+  ---------------------------- */
+  const makeMentor = () => {
+    setActionLoading(user.id);
+
+    approveMentor(user.id)
+      .then(() => {
+        refreshUsers();
+      })
+      .catch((err) => {
+        alert(
+          err?.response?.data?.detail ||
+            "Failed to approve mentor"
+        );
+      })
+      .finally(() => {
+        setActionLoading(null);
+      });
+  };
+
+  /* ---------------------------
+     Delete User (then/catch)
+  ---------------------------- */
+  const confirmDelete = () => {
+    setActionLoading(user.id);
+
+    deleteUser(user.id)
+      .then(() => {
+        setOpenDeleteDialog(false);
+        refreshUsers();
+      })
+      .catch((err) => {
+        alert(
+          err?.response?.data?.detail ||
+            "Failed to delete user"
+        );
+      })
+      .finally(() => {
+        setActionLoading(null);
+      });
   };
 
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Header */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={1}
+    <>
+      <Card sx={{ height: "100%" }}>
+        <CardContent
+          sx={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+          }}
         >
-          <Chip
-            label={user.role_name}
-            color={COLORS[user.role_name]}
-            size="small"
-          />
+          {/* Header */}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={1}
+          >
+            <Chip
+              label={user.role_name}
+              color={COLORS[user.role_name]}
+              size="small"
+            />
 
+            <Stack direction="row" spacing={0.5}>
+              <Button
+                size="small"
+                variant="contained"
+                disabled={
+                  !isStudent ||
+                  actionLoading === user.id
+                }
+                onClick={makeMentor}
+              >
+                {actionLoading === user.id
+                  ? "Processing..."
+                  : "Make Mentor"}
+              </Button>
+
+              <IconButton
+                size="small"
+                color="error"
+                disabled={
+                  actionLoading === user.id
+                }
+                onClick={() =>
+                  setOpenDeleteDialog(true)
+                }
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          </Stack>
+
+          {/* User Info */}
+          <Stack spacing={0.8}>
+            <Typography variant="body2">
+              <b>Username:</b>{" "}
+              {user.username}
+            </Typography>
+
+            <Typography variant="body2">
+              <b>Email:</b> {user.email}
+            </Typography>
+
+            <Typography variant="body2">
+              <b>First Name:</b>{" "}
+              {user.first_name}
+            </Typography>
+
+            <Typography variant="body2">
+              <b>Last Name:</b>{" "}
+              {user.last_name}
+            </Typography>
+          </Stack>
+
+          <div style={{ flexGrow: 1 }} />
+        </CardContent>
+      </Card>
+
+      {/* ⚠️ Delete Warning Dialog */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() =>
+          actionLoading
+            ? null
+            : setOpenDeleteDialog(false)
+        }
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <WarningAmberIcon color="warning" />
+          Delete User
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to permanently
+            delete{" "}
+            <b>{user.username}</b>?
+          </Typography>
+          <Typography
+            color="error"
+            sx={{ mt: 1 }}
+          >
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
           <Button
-            size="small"
-            variant="contained"
+            onClick={() =>
+              setOpenDeleteDialog(false)
+            }
             disabled={
-              !isStudent ||
               actionLoading === user.id
             }
-            onClick={makeMentor}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            color="error"
+            variant="contained"
+            onClick={confirmDelete}
+            disabled={
+              actionLoading === user.id
+            }
           >
             {actionLoading === user.id
-              ? "Processing..."
-              : "Make Mentor"}
+              ? "Deleting..."
+              : "Delete"}
           </Button>
-        </Stack>
-
-        {/* User Info */}
-        <Stack spacing={0.8}>
-          <Typography variant="body2">
-            <b>Username:</b>{" "}
-            {user.username}
-          </Typography>
-
-          <Typography variant="body2">
-            <b>Email:</b> {user.email}
-          </Typography>
-
-          <Typography variant="body2">
-            <b>First Name:</b>{" "}
-            {user.first_name}
-          </Typography>
-
-          <Typography variant="body2">
-            <b>Last Name:</b>{" "}
-            {user.last_name}
-          </Typography>
-        </Stack>
-
-        <div style={{ flexGrow: 1 }} />
-      </CardContent>
-    </Card>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

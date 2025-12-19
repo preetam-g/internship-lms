@@ -22,13 +22,22 @@ class RegisterView(APIView):
         try:
             username = request.data.get('username')
             password = request.data.get('password')
+            fn = request.data.get('first_name')
+            ln = request.data.get('last_name')
+            mail = request.data.get('email')
 
-            if not username or not password:
+            if not username or not password or not mail or not fn or not ln:
                 return Response({
-                    'detail': 'Username and password are required'
+                    'detail': 'All details are required',
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            user = User.objects.create_user(username=username, password=password)
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=fn,
+                last_name=ln,
+                email=mail
+            )
 
             token = RefreshToken.for_user(user)
             return Response({

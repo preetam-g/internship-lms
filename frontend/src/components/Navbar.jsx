@@ -12,8 +12,8 @@ export default function Navbar() {
         {/* Left side */}
         <Typography
           variant="h6"
-          sx={{ flexGrow: 1, cursor: "pointer" }}
-          onClick={() => navigate("/")}
+          sx={{ flexGrow: 1}}
+          // onClick={() => navigate("/")}
         >
           LMS
         </Typography>
@@ -26,7 +26,7 @@ export default function Navbar() {
               sx={{ mr: 2, display: "inline" }}
               onClick={e => navigate(user.role_name.toLowerCase())}
             >
-              {user.role_name.toUpperCase()}
+              {user.first_name.toUpperCase()}
             </Typography>
 
             <Button color="inherit" onClick={logout}>
