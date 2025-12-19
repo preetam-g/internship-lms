@@ -1,88 +1,16 @@
-# =====================================================
-# OS / Editor files
-# =====================================================
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-*.swp
-*.swo
+# Python
+.venv/
+__pycache__/
+*.pyc
 
-# =====================================================
-# Environment variables (NEVER COMMIT)
-# =====================================================
-.env
-.env.*
-!.env.example
-
-# =====================================================
-# Logs
-# =====================================================
-logs/
-*.log
+# Node
+node_modules/
 npm-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# =====================================================
-# ================= FRONTEND (Node / React / Vite)
-# =====================================================
+# IDEs
+.idea/
+.vscode/
 
-# Node dependencies
-node_modules/
-.pnpm-store/
-.yarn/
-.yarn-cache/
-
-# Build outputs
-dist/
-build/
-
-# Vite cache
-.vite/
-
-# Test coverage
-coverage/
-
-# =====================================================
-# ================= BACKEND (Python / Django)
-# =====================================================
-
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
-venv/
-env/
-.venv/
-
-# Django
-db.sqlite3
-db.sqlite3-journal
-media/
-staticfiles/
-local_settings.py
-
-# Celery / Redis
-celerybeat-schedule
-redis.dump
-
-# Python test / coverage
-htmlcov/
-.coverage
-.coverage.*
-.pytest_cache/
-
-# Build / distribution
-build/
-dist/
-*.egg-info/
-
-# =====================================================
-# Migrations (recommended to KEEP)
-# =====================================================
-# Uncomment below ONLY if you want to ignore migrations
-# */migrations/
-# !*/migrations/__init__.py
+# OS
+.DS_Store
