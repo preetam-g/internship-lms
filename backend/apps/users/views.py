@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.http import Http404
 
@@ -88,11 +88,23 @@ class LoginView(APIView):
 
         token = RefreshToken.for_user(user)
 
+        role_name = "Student"
+        if user.role == User.Role.MENTOR: role_name = "Mentor"
+        elif user.role == User.Role.ADMIN: role_name = "Admin"
+
         return Response({
             "data": {
                 "access": str(token.access_token),
                 "refresh": str(token),
-                "user": UserSerializer(user).data,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                    "role": user.role,
+                    "role_name": role_name,
+                },
             },
             "detail": "User logged in successfully",
         }, status=status.HTTP_200_OK)
