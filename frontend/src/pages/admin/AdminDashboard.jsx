@@ -25,14 +25,10 @@ import {
 
 import UserManagement from "./UserManagement";
 
-/* ===========================
-   Admin Dashboard
-=========================== */
+
 
 export default function AdminDashboard() {
-  /* ---------------------------
-     State
-  ---------------------------- */
+
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
 
@@ -45,9 +41,7 @@ export default function AdminDashboard() {
   const [openCoursesDialog, setOpenCoursesDialog] =
     useState(false);
 
-  /* ---------------------------
-     Effects
-  ---------------------------- */
+
   useEffect(() => {
     fetchUsers();
     fetchCourses();
@@ -136,7 +130,7 @@ export default function AdminDashboard() {
           alignItems: "center",
         }}
       >
-        Course Management
+        All Courses
         <IconButton
           onClick={() => setOpenCoursesDialog(false)}
         >
@@ -173,11 +167,11 @@ export default function AdminDashboard() {
                         "No description"}
                     </Typography>
 
-                    <Typography variant="caption">
+                    {/* <Typography variant="caption">
                       Mentor:{" "}
                       {course.mentor?.username ||
                         "—"}
-                    </Typography>
+                    </Typography> */}
                   </CardContent>
                 </Card>
               </Grid>
@@ -243,8 +237,8 @@ export default function AdminDashboard() {
         <Grid item xs={12} md={6}>
           <ActionCard
             title="Course Management"
-            description="View and manage all courses on the platform."
-            actionLabel="Manage Courses"
+            description="View all courses on the platform."
+            actionLabel="View Courses"
             onClick={() => {
               setOpenCoursesDialog(true);
             }}

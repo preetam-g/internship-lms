@@ -55,7 +55,7 @@ export default function Login() {
       })
       .catch(err => {
         console.error(err);
-        const msg = "Login failed. Please try again.";
+        const msg = err?.response?.data?.detail || "Login failed. Please try again.";
         setError(msg);
       })
       .finally(() => {

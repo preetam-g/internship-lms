@@ -5,9 +5,7 @@ const api = axios.create({
   baseURL: "http://localhost:8000/api/",
 });
 
-/* ---------------------------
-   Request Interceptor
----------------------------- */
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access");
@@ -19,10 +17,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/* ---------------------------
-   Response Interceptor
-   -> Logout on 401
----------------------------- */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -74,6 +68,50 @@ export const deleteUser = (id) => {
 
 // courses
 export const getCourses = (params) => {
-  // for admin to get all courses
   return api.get("courses/", {params});
 };
+
+export const getMyCourses = (params) => {
+  return api.get("courses/my/", {params});
+};
+
+export const createCourse = (data) => {
+  return api.post("courses/", data);
+};
+
+export const updateCourse = (id, data) => {
+  return api.put(`courses/${id}/`, data);
+};
+
+export const deleteCourse = (id) => {
+  return api.delete(`courses/${id}/`);
+};
+
+export const addChapter = (courseId, data) => {
+  return api.post(`courses/${courseId}/chapters/`, data);
+};
+
+export const assignCourse = (courseId, data) => {
+  return api.post(`courses/${courseId}/assign/`, data);
+};
+
+export const getAllStudents = (params) => {
+  return api.get("users/students/", {params});
+};
+
+export const getEnrolledCourses = () =>
+  api.get("courses/enrolled/");
+
+export const getCourseChapters = (courseId) =>
+  api.get(`courses/${courseId}/chapters/`);
+
+export const markChapterComplete = (chapterId) =>
+  api.post(`progress/${chapterId}/complete/`);
+
+export const getMyProgress = () =>
+  api.get("progress/my/");
+
+export const downloadCertificate = (courseId) =>
+  api.get(`certificates/${courseId}/`, {
+    responseType: "blob",
+  });

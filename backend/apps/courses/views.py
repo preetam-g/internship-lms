@@ -51,20 +51,16 @@ class CourseViewSet(mixins.ListModelMixin,
     # -------------------------------------------------
     def get_permissions(self):
         if self.action == "list":
-            # Admin only: view all courses
             return [IsAuthenticated(), IsAdminRole()]
 
         if self.action in ["create", "my_courses"]:
-            # Mentor actions
             return [IsAuthenticated(), IsMentor()]
 
         if self.action in ["update", "partial_update", "destroy", "assign_course"]:
-            # Mentor + ownership
-            return [
-                IsAuthenticated(),
-                IsMentor(),
-                IsCourseMentor(),
-            ]
+            return [IsAuthenticated(), IsMentor(), IsCourseMentor()]
+
+        if self.action == "enrolled_courses":
+            return [IsAuthenticated(), IsStudent()]
 
         return [IsAuthenticated()]
 
@@ -200,77 +196,123 @@ class CourseViewSet(mixins.ListModelMixin,
             status=status.HTTP_201_CREATED
         )
 
+    @action(detail=False, methods=["get"], url_path="enrolled")
+    def enrolled_courses(self, request):
+        """
+        GET /api/courses/enrolled/
+        Student can view only courses they are assigned to.
+        """
+        student = request.user
+
+        courses = Course.objects.filter(
+            courseassignment__student = student
+        ).distinct()
+
+        serializer = self.get_serializer(courses, many=True)
+
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "Enrolled courses fetched successfully"
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 class ChapterViewSet(mixins.CreateModelMixin,
-                     mixins.ListModelMixin,
-                     viewsets.GenericViewSet):
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet):
     """
     Handles Chapter Management for a specific course.
-    URL: /api/courses/:course_id/chapters/
+
+    URL:
+      /api/courses/:course_id/chapters/
+
+    Access:
+    - Mentor (owner):
+        * GET chapters
+        * POST chapters
+    - Student (enrolled):
+        * GET chapters only
     """
+
     serializer_class = ChapterSerializer
-    permission_classes = [IsAuthenticated, IsMentor]
+    permission_classes = [IsAuthenticated]
 
     def get_course(self):
-        """
-        Helper to fetch the course and enforce ownership.
-        """
-        course_id = self.kwargs.get('course_id')
-        course = get_object_or_404(Course, pk=course_id)
+        course_id = self.kwargs.get("course_id")
+        return get_object_or_404(Course, pk=course_id)
 
-        if course.mentor != self.request.user:
-            raise PermissionDenied("You are not the mentor of this course.")
+    def is_student_enrolled(self, student, course):
+        return CourseAssignment.objects.filter(
+            student=student,
+            course=course
+        ).exists()
 
-        return course
-
+    # -------------------------------------------------
+    # GET /api/courses/:course_id/chapters/
+    # -------------------------------------------------
     def list(self, request, *args, **kwargs):
         """
-        GET /api/courses/:course_id/chapters
+        Mentor: must own the course
+        Student: must be enrolled
         """
-        try:
-            course = self.get_course()  # Validates ownership
+        course = self.get_course()
+        user = request.user
 
-            # Filter chapters by this course
-            chapters = Chapter.objects.filter(course=course)
-            serializer = self.get_serializer(chapters, many=True)
+        # --- Mentor access ---
+        if user.role == User.Role.MENTOR:
+            if course.mentor != user:
+                raise PermissionDenied("You are not the mentor of this course.")
 
-            return Response({
-                'data': serializer.data,
-                'detail': f"""{course.title}: Chapters fetched successfully"""
-            }, status=status.HTTP_200_OK)
+        # --- Student access ---
+        elif user.role == User.Role.STUDENT:
+            if not self.is_student_enrolled(user, course):
+                raise PermissionDenied("You are not enrolled in this course.")
 
-        except PermissionDenied as e:
-            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except Http404 as e:
-            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            raise PermissionDenied("You are not allowed to view chapters.")
 
+        chapters = Chapter.objects.filter(course=course).order_by("sequence_number")
+        serializer = self.get_serializer(chapters, many=True)
+
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "Chapters fetched successfully"
+            },
+            status=status.HTTP_200_OK
+        )
+
+    # -------------------------------------------------
+    # POST /api/courses/:course_id/chapters/
+    # -------------------------------------------------
     def create(self, request, *args, **kwargs):
         """
-        POST /api/courses/:course_id/chapters
+        Mentor-only: must own the course
         """
-        try:
-            course = self.get_course()  # Validates ownership
+        user = request.user
 
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        if user.role != User.Role.MENTOR:
+            raise PermissionDenied("Only mentors can add chapters.")
 
-            # Save the chapter linked to the fetched course
-            serializer.save(course=course)
+        course = self.get_course()
 
-            return Response({
-                'data': serializer.data,
-                'detail': 'Chapter added successfully'
-            }, status=status.HTTP_201_CREATED)
+        if course.mentor != user:
+            raise PermissionDenied("You are not the mentor of this course.")
 
-        except PermissionDenied as e:
-            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except Http404 as e:
-            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(course=course)
+
+        return Response(
+            {
+                "data": serializer.data,
+                "detail": "Chapter added successfully"
+            },
+            status=status.HTTP_201_CREATED
+        )
+
 
 
 class ProgressViewSet(viewsets.GenericViewSet):

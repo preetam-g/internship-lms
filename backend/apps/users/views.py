@@ -11,6 +11,7 @@ from django.http import Http404
 
 from .permissions import IsAdminRole
 from .serializers import UserSerializer
+from ..courses.permissions import IsMentor
 
 User = get_user_model()
 
@@ -169,4 +170,27 @@ class UserViewSet(mixins.ListModelMixin,  # Enables GET /api/users/
         except Exception as e:
             return Response({
                 'detail': f'Failed to approve as mentor: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class MentorStudentListView(APIView):
+    """
+    Mentor-only API to fetch all students.
+    """
+    permission_classes = [IsAuthenticated, IsMentor]
+
+    def get(self, request):
+        try:
+            students = User.objects.filter(role=User.Role.STUDENT)
+
+            serializer = UserSerializer(students, many=True)
+
+            return Response({
+                "data": serializer.data,
+                "detail": "Students fetched successfully"
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "detail": f"Failed to fetch students: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
