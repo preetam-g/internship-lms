@@ -48,7 +48,7 @@ class CourseAssignment(models.Model):
         on_delete=models.CASCADE,
         related_name="assigned_courses"
     )
-    assigned_at = models.DateTimeField(auto_now_add=True)
+    assigned_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         unique_together = ("course", "student")

@@ -25,7 +25,22 @@ class CourseAssignmentSerializer(serializers.ModelSerializer):
 
 
 class ChapterProgressSerializer(serializers.ModelSerializer):
+    chapter_title = serializers.CharField(source='chapter.title', read_only=True)
+    sequence = serializers.IntegerField(source='chapter.sequence_number', read_only=True)
+
     class Meta:
         model = ChapterProgress
-        fields = "__all__"
-        read_only_fields = ("student", "completed_at")
+        fields = ['chapter', 'chapter_title', 'sequence', 'completed', 'completed_at']
+
+class CourseProgressSerializer(serializers.ModelSerializer):
+    """
+    Shows overall progress for a specific course assigned to the student.
+    """
+    course_title = serializers.CharField(source='course.title', read_only=True)
+    total_chapters = serializers.IntegerField(read_only=True)
+    completed_chapters = serializers.IntegerField(read_only=True)
+    percentage = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = CourseAssignment
+        fields = ['course', 'course_title', 'total_chapters', 'completed_chapters', 'percentage']
